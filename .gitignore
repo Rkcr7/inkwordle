@@ -1,0 +1,29 @@
+# --- Rust / build artifacts ---
+game/target/
+game/dist/
+**/*.rs.bk
+
+# --- Quill (vendored takeover host) ---
+quill/build/
+# reMarkable's proprietary libqsgepaper.so — pulled from the device at build time, never committed
+quill/vendor/
+# large demo assets inherited from the vendored quill, unused by this game
+quill/*.gif
+quill/marauders_map.png
+
+# --- On-device settings written by `remagic config` (never in the repo) ---
+settings.env
+**/settings.env
+
+# --- Word-list research scratch (the shipped lists live in game/assets/) ---
+wordlists/
+
+# --- Source photos (renamed copies are tracked in docs/img/) ---
+wordle-img/
+
+# --- OS / editor cruft ---
+.DS_Store
+Thumbs.db
+*.swp
+.idea/
+.vscode/

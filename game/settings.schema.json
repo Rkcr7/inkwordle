@@ -1,0 +1,13 @@
+{
+  "title": "Wordle — settings",
+  "env": "settings.env",
+  "fields": [
+    {
+      "key": "WORDLE_IDLE_MS",
+      "label": "Recognize delay (ms)",
+      "kind": "select",
+      "options": ["", "500", "700", "900", "1200"],
+      "help": "How long the pen must pause before your written letters are recognized. Higher = more time to write across cells before it commits. Empty = 900 ms."
+    }
+  ]
+}

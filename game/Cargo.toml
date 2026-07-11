@@ -1,0 +1,24 @@
+[package]
+name = "wordle"
+version = "0.1.0"
+edition = "2021"
+license = "MIT"
+description = "Wordle for the reMarkable Paper Pro — write your guesses by hand, recognized on-device. No LLM."
+
+[dependencies]
+libc = "0.2"
+signal-hook = "0.3"
+ab_glyph = "0.2"
+tract-onnx = "0.21"
+
+[features]
+takeover = []
+
+[profile.release]
+strip = true
+lto = false
+codegen-units = 16
+opt-level = 3
+panic = "abort"
+# Fast iteration: only recompile changed codegen units (allowed because lto=off).
+incremental = true
