@@ -1,0 +1,20 @@
+quill — takeover display host for the reMarkable Paper Pro
+
+This component includes code DERIVED FROM epfb-re by asivery:
+
+    src/epfb.cpp
+    src/epframebuffer.h
+
+epfb-re is Copyright (c) asivery and is licensed under the GNU General Public
+License version 3 (GPLv3).
+
+    Author:  asivery — https://github.com/asivery
+    Upstream: asivery's epfb-re / rm-xovi-extensions
+
+Because libquill.so is built from these files, libquill.so — and any binary
+that dynamically links it (this application included) — is a combined work
+distributed under the GNU General Public License v3.0. See the LICENSE file at
+the repository root for the full license text.
+
+Thanks to asivery for epfb-re, xovi, and rm-appload, without which none of this
+would run on the device.

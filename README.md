@@ -319,7 +319,9 @@ And, of course, **reMarkable** for the extraordinary paper-like device (and the 
 
 ## License
 
-**MIT** — see [LICENSE](LICENSE). InkWordle installs and builds on third-party software under their own licenses and does not redistribute reMarkable's proprietary components.
+**GPLv3** — see [LICENSE](LICENSE).
+
+InkWordle draws through **Quill**, whose framebuffer layer (`quill/src/epfb.cpp`, `epframebuffer.h`) is **derived from [epfb-re](https://github.com/asivery) by asivery**, licensed under the **GNU General Public License v3.0**. Because `libquill.so` is built from that code and this app links it, the whole combined work is distributed under **GPLv3** — see [`quill/NOTICE`](quill/NOTICE) for the attribution. The complete corresponding source is this repository. InkWordle does not redistribute reMarkable's proprietary components.
 
 ## Disclaimer
 

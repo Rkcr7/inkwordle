@@ -1,3 +1,12 @@
+// ---------------------------------------------------------------------------
+// Derived from epfb-re by asivery (https://github.com/asivery) — the reMarkable
+// e-ink framebuffer interposition shim.
+//
+//   Copyright (c) asivery
+//   License:  GNU General Public License v3.0 (GPLv3)
+//
+// See the LICENSE file at the repository root for the full text.
+// ---------------------------------------------------------------------------
 #pragma once
 #include <QImage>
 #include <QRect>

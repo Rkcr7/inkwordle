@@ -2,7 +2,7 @@
 name = "inkwordle"
 version = "0.1.0"
 edition = "2021"
-license = "MIT"
+license = "GPL-3.0-or-later"
 description = "InkWordle for the reMarkable Paper Pro — write your guesses by hand, recognized on-device. No LLM."
 
 [dependencies]

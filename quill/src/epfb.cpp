@@ -1,3 +1,15 @@
+// ---------------------------------------------------------------------------
+// Derived from epfb-re by asivery (https://github.com/asivery) — the reMarkable
+// e-ink framebuffer interposition shim (QImage-constructor interposition to
+// capture the vendor engine's internal buffers).
+//
+//   Copyright (c) asivery
+//   License:  GNU General Public License v3.0 (GPLv3)
+//
+// Because this file — and libquill.so, which is built from it — is GPLv3, the
+// whole combined work that links libquill (this app included) is distributed
+// under GPLv3. See the LICENSE file at the repository root for the full text.
+// ---------------------------------------------------------------------------
 #define EPFB_INTERNAL
 #include "epframebuffer.h"
 #include <map>
