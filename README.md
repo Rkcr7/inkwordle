@@ -121,6 +121,8 @@ It grew out of an on-device handwriting-recognition engine paired with **full-ta
 ### 🔒 100% local — nothing leaves your tablet
 The star of the show. Your handwriting is read by a **character-recognition engine that lives entirely on the device** — there is no large language model, no server, no cloud, no internet connection anywhere in the loop. Nothing to sign into, no key to paste, no data sent anywhere. Turn on airplane mode and it plays exactly the same. The game, the recognizer, the dictionary and your history all sit on the tablet.
 
+It's also **easy on the tablet**: with no radio spinning, no backlight, and e-ink that only redraws the pixels that change, it sits nearly idle between your guesses — the recognizer wakes for just a couple of milliseconds when you pause. It's a small local game, not a battery drain.
+
 ### ✍️ You play with the pen — no keyboard at all
 - **Write into the grid.** Print each letter into its box with the pen and it appears as text. That's the whole input — there is **no on-screen keyboard** (the A–Z row at the bottom is a *tracker*, not keys).
 - **Write as fast as you like.** Dash a whole word across the boxes in one flow — your ink shows instantly and the letters are recognized together after you pause, so it never stutters or jitters mid-word.
