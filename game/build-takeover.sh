@@ -1,5 +1,5 @@
 #!/bin/bash
-# Build wordle in TAKEOVER mode (links libquill.so + vendor Qt/qsgepaper).
+# Build inkwordle in TAKEOVER mode (links libquill.so + vendor Qt/qsgepaper).
 # Runs inside the reMarkable cross-toolchain container. Must link with the
 # ferrari SDK's gcc (glibc 2.38) — see muse's build-takeover.sh for the why.
 set -euo pipefail
@@ -24,4 +24,4 @@ chmod +x /tmp/glyph-sdk-cc.sh
 export CARGO_TARGET_AARCH64_UNKNOWN_LINUX_GNU_LINKER=/tmp/glyph-sdk-cc.sh
 
 cargo build --release --target aarch64-unknown-linux-gnu --features takeover "$@"
-echo "built: target/aarch64-unknown-linux-gnu/release/wordle (takeover)"
+echo "built: target/aarch64-unknown-linux-gnu/release/inkwordle (takeover)"

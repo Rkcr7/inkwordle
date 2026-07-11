@@ -1,9 +1,9 @@
 {
-  "title": "Wordle — settings",
+  "title": "InkWordle — settings",
   "env": "settings.env",
   "fields": [
     {
-      "key": "WORDLE_IDLE_MS",
+      "key": "INKWORDLE_IDLE_MS",
       "label": "Recognize delay (ms)",
       "kind": "select",
       "options": ["", "500", "700", "900", "1200"],

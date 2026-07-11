@@ -143,9 +143,15 @@ pub fn draw_help(surf: &mut Surface, font: &FontRef) {
     ui::text_center(surf, font, W / 2, 1780, 34.0, "(tap anywhere to close)", C_DIM);
 }
 
+/// The display face for the "InkWordle" wordmark — an elegant flowing script,
+/// distinct from the plain UI font, so the title reads like a logo.
+fn title_font() -> FontRef<'static> {
+    FontRef::try_from_slice(include_bytes!("../assets/title-font.ttf")).expect("title font")
+}
+
 pub fn draw_header(surf: &mut Surface, font: &FontRef, game: &Game) {
     surf.fill_rect(0, 0, W as usize, (GRID_Y0 - 8) as usize, WHITE);
-    ui::text_center(surf, font, W / 2, 44, 92.0, "WORDLE", BLACK);
+    ui::text_center(surf, &title_font(), W / 2, 20, 118.0, "InkWordle", BLACK);
     // rules (top-left) + quit (top-right)
     ui::Button::new(HELP_X, HELP_Y, HELP_W, HELP_H, "Rules").draw(surf, font, false);
     ui::Button::new(QUIT_X, QUIT_Y, QUIT_W, QUIT_H, "Quit").draw(surf, font, false);

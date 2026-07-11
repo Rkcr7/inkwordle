@@ -1,9 +1,9 @@
 #!/bin/bash
-# Launch GlyphLab in full-takeover mode: stop xochitl, run the app against the
+# Launch InkWordle in full-takeover mode: stop xochitl, run the app against the
 # vendor e-ink engine, ALWAYS restore xochitl on exit.
 #
-# Exit: power button, 5-finger tap, the Quit button, or SIGTERM. Escape hatch if
-# anything wedges: ssh rm 'systemctl start xochitl'.
+# Exit: power button, the Quit button, or SIGTERM. Escape hatch if anything
+# wedges: ssh rm 'systemctl start xochitl'.
 set -u
 
 restore() {
@@ -16,7 +16,7 @@ fi
 
 HERE=$(cd "$(dirname "$0")" && pwd)
 
-# Optional settings (GLYPH_MODEL, GLYPH_IDLE_MS) written by `remagic config wordle`.
+# Optional settings (INKWORDLE_IDLE_MS) written by `remagic config inkwordle`.
 if [ -f "$HERE/settings.env" ]; then
     set -a; . "$HERE/settings.env"; set +a
 fi
@@ -27,8 +27,8 @@ fi
 rm -f /tmp/epframebuffer.lock          # stale EPD lock blocks the engine
 [ -z "${REMAGIC_SESSION:-}" ] && sleep 1
 
-cd "$HERE" || { echo "wordle: cannot cd to $HERE" >&2; exit 1; }
+cd "$HERE" || { echo "inkwordle: cannot cd to $HERE" >&2; exit 1; }
 LD_LIBRARY_PATH="$HERE:/home/root/quill:/usr/lib/plugins/scenegraph" \
     HOME=/home/root \
-    "$HERE/wordle"
-echo "wordle-takeover: closed ($?), restoring xochitl"
+    "$HERE/inkwordle"
+echo "inkwordle-takeover: closed ($?), restoring xochitl"

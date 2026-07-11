@@ -5,7 +5,7 @@
 #
 #   ./build.sh
 #
-# Output: glyph/dist/wordle/  (ready for `remagic install glyph/dist/wordle`)
+# Output: game/dist/inkwordle/  (ready for `remagic install game/dist/inkwordle`)
 set -euo pipefail
 HERE=$(cd "$(dirname "$0")" && pwd)
 IMAGE=muse-xbuild:latest
@@ -26,7 +26,7 @@ esac
 
 docker build -t "$IMAGE" "$HERE/../muse-standalone/build" 2>/dev/null || true
 
-echo "==> building quill + wordle in the container"
+echo "==> building quill + inkwordle in the container"
 docker run --rm -v "${MOUNT}:/work" "$IMAGE" bash -lc "
     set -e
     find /work -name '*.sh' -exec sed -i 's/\r\$//' {} +
@@ -35,4 +35,4 @@ docker run --rm -v "${MOUNT}:/work" "$IMAGE" bash -lc "
     cd /work/game && bash build-takeover.sh
     cd /work/game && bash scripts/make-bundle.sh
 "
-echo "==> done. Install with:  remagic install \"$HERE/game/dist/wordle\""
+echo "==> done. Install with:  remagic install \"$HERE/game/dist/inkwordle\""

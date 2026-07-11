@@ -1,8 +1,8 @@
 {
-  "id": "wordle",
-  "name": "Wordle",
+  "id": "inkwordle",
+  "name": "InkWordle",
   "version": "0.1.0",
-  "description": "Guess the 5-letter word — write each letter by hand, recognized on-device. No LLM, no network.",
+  "description": "Wordle you play by hand — write each letter, recognized on-device. No LLM, no network.",
   "application": "appload-launch.sh",
   "qtfb": false
 }

@@ -1,9 +1,9 @@
 [package]
-name = "wordle"
+name = "inkwordle"
 version = "0.1.0"
 edition = "2021"
 license = "MIT"
-description = "Wordle for the reMarkable Paper Pro — write your guesses by hand, recognized on-device. No LLM."
+description = "InkWordle for the reMarkable Paper Pro — write your guesses by hand, recognized on-device. No LLM."
 
 [dependencies]
 libc = "0.2"

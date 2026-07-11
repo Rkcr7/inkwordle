@@ -1,4 +1,4 @@
-//! Wordle for the reMarkable Paper Pro — write each letter by hand into the grid,
+//! InkWordle for the reMarkable Paper Pro — write each letter by hand into the grid,
 //! recognized on-device (no LLM). Premium e-ink UI: live ink, per-cell recognition,
 //! colored reveals, a letter tracker.
 
@@ -129,7 +129,7 @@ fn main() {
     let (disp, mut surf) = match display::Display::open() {
         Ok(v) => v,
         Err(e) => {
-            eprintln!("wordle: display open failed: {e}");
+            eprintln!("inkwordle: display open failed: {e}");
             std::process::exit(1);
         }
     };
@@ -150,7 +150,7 @@ fn main() {
         disp.terminate();
         return;
     }
-    let idle_ms: u128 = env_u32("WORDLE_IDLE_MS", 900) as u128;
+    let idle_ms: u128 = env_u32("INKWORDLE_IDLE_MS", 900) as u128;
 
     let mut pen = if takeover { pen::PenDevice::open().ok() } else { None };
     let mut touch = if takeover { touch::TouchDevice::open().ok() } else { None };

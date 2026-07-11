@@ -1,0 +1,18 @@
+# Shell scripts run on the reMarkable (Linux) — they must stay LF, never CRLF.
+*.sh text eol=lf
+# Normalize source/text to LF in the repo for cross-platform consistency.
+*.rs   text eol=lf
+*.toml text eol=lf
+*.json text eol=lf
+*.md   text eol=lf
+*.rs   text eol=lf
+# Binary assets — never munge line endings.
+*.png  binary
+*.jpg  binary
+*.jpeg binary
+*.ttf  binary
+*.onnx binary
+*.so   binary
+*.c    text eol=lf
+*.cpp  text eol=lf
+*.h    text eol=lf

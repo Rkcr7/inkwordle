@@ -1,10 +1,12 @@
 <div align="center">
 
-# ✏️ Wordle — for the reMarkable Paper Pro
+<img src="docs/img/icon.png" alt="InkWordle" width="150" />
 
-### No keyboard. No internet. You **write** each letter with the pen, and the tablet reads your handwriting on-device.
+# ✏️ InkWordle
 
-A full-screen Wordle for the **reMarkable Paper Pro** that turns the daily word puzzle into something that belongs on paper. You don't tap keys — you write your guess into the grid in your own hand, and a tiny neural net **on the tablet itself** recognizes each letter in milliseconds. No account, no API key, no network. Just ink, paper, and a word to find.
+### Write-by-hand Wordle for the reMarkable Paper Pro. No keyboard, no internet — you **write** each letter with the pen and the tablet reads your handwriting on-device.
+
+**InkWordle** is a full-screen Wordle for the **reMarkable Paper Pro** that turns the word puzzle into something that belongs on paper. You don't tap keys — you write your guess into the grid in your own hand, and a tiny neural net **on the tablet itself** recognizes each letter in milliseconds. No account, no API key, no network. Just ink, paper, and a word to find.
 
 <br>
 
@@ -36,11 +38,11 @@ A full-screen Wordle for the **reMarkable Paper Pro** that turns the daily word 
 
 ## What it is
 
-Wordle here is played the way the device wants to be used — **with the pen**. Six tries to find a hidden five-letter word. You write your guess into the row, letter by letter; after a short pause the tablet recognizes your handwriting, fills the boxes, and — when you press **Enter** — scores the guess with the familiar green / amber / gray tiles.
+InkWordle is played the way the device wants to be used — **with the pen**. Six tries to find a hidden five-letter word. You write your guess into the row, letter by letter; after a short pause the tablet recognizes your handwriting, fills the boxes, and — when you press **Enter** — scores the guess with the familiar green / amber / gray tiles.
 
 The whole thing runs **entirely on the tablet**. Recognition is a small [EMNIST](https://www.nist.gov/itl/products-and-services/emnist-dataset) convolutional network compiled to native ARM and run through [`tract`](https://github.com/sonos/tract) — **no large language model, no cloud call, no data ever leaving the device**. It reads a hand-written letter in a couple of milliseconds, so writing feels immediate.
 
-It grew out of an on-device handwriting-recognition engine and the same **full-takeover e-ink rendering** used by [Muse](https://github.com/Rkcr7/Muse) — the pen and color panel are driven directly, so ink is instant and the colored tiles actually pop on Gallery 3.
+It grew out of an on-device handwriting-recognition engine paired with **full-takeover e-ink rendering** — the pen and color panel are driven directly, so ink is instant and the colored tiles actually pop on Gallery 3.
 
 ---
 
@@ -147,7 +149,7 @@ A slim top bar, the 6×5 grid, the A–Z tracker, and a three-button control bar
 | Control | What it does |
 |---|---|
 | **Rules** (left) | Opens the how-to-play overlay (color legend, tips, which words count). Tap anywhere to close. |
-| **WORDLE** (center) | The title, with a status line below — *Guess 3 of 6*, *Solved!*, or *The word was …*. |
+| **InkWordle** (center) | The title, with a status line below — *Guess 3 of 6*, *Solved!*, or *The word was …*. |
 | **Quit** (right) | Leaves the game and returns to the launcher. |
 
 ### The control bar
@@ -187,24 +189,24 @@ A slim top bar, the 6×5 grid, the A–Z tracker, and a three-button control bar
 
 ### Step 1 — Get remagic on your tablet
 
-Wordle runs on the **remagic** platform (xovi + AppLoad). If you haven't set it up yet, do that first — it's one command:
+InkWordle runs on the **remagic** platform (xovi + AppLoad). If you haven't set it up yet, do that first — it's one command:
 
 **→ [github.com/MaximeRivest/remagic](https://github.com/MaximeRivest/remagic)**
 
 That turns on developer mode, installs the AppLoad launcher, and gives you the `remagic` CLI on your computer.
 
-### Step 2 — Install Wordle
+### Step 2 — Install InkWordle
 
 > **Pointing to your tablet:** `remagic` finds it automatically — over the **USB** cable (address `10.11.99.1`) or over **Wi-Fi** once you've run `remagic wifi on`. To force a specific address, prefix any command with `remagic -host <ip> …`.
 
 #### Option A — Prebuilt release (no compiler) ✅ recommended
 
-1. Download **`wordle-<version>.zip`** from the [**Releases**](https://github.com/Rkcr7/wordle/releases/latest) page and unzip it — you get a `wordle/` folder.
+1. Download **`inkwordle-<version>.zip`** from the [**Releases**](https://github.com/Rkcr7/inkwordle/releases/latest) page and unzip it — you get an `inkwordle/` folder.
 2. With the tablet connected, push it into AppLoad:
    ```sh
-   remagic install ./wordle
+   remagic install ./inkwordle
    ```
-3. On the tablet: open **AppLoad → Reload → Wordle**.
+3. On the tablet: open **AppLoad → Reload → InkWordle**.
 
 #### Option B — Build from source
 
@@ -212,35 +214,35 @@ Docker does the cross-compile (no Rust setup on your machine). From the repo roo
 
 ```sh
 bash build.sh                                 # cross-build quill + the game (Docker)
-remagic install game/dist/wordle              # push the staged bundle to the tablet
+remagic install game/dist/inkwordle           # push the staged bundle to the tablet
 ```
 
-Then **AppLoad → Reload → Wordle**.
+Then **AppLoad → Reload → InkWordle**.
 
 > **If the app doesn't appear after Reload**, a folder copy can drop an executable bit on the launcher. Restore it once over SSH (USB) — then Reload again:
 > ```sh
-> ssh root@10.11.99.1 'cd /home/root/xovi/exthome/appload/wordle && chmod 755 wordle *.sh libquill.so'
+> ssh root@10.11.99.1 'cd /home/root/xovi/exthome/appload/inkwordle && chmod 755 inkwordle *.sh libquill.so'
 > ```
 
-That's it — no key, no config. Open **Wordle** and start writing.
+That's it — no key, no config. Open **InkWordle** and start writing.
 
 ---
 
 ## Settings
 
-**Wordle needs no configuration to play** — install it and start writing. There's exactly one optional tweak: how long the pen must rest before your letters are read. Bump it up if you write slowly, or lower it for a snappier feel.
+**InkWordle needs no configuration to play** — install it and start writing. There's exactly one optional tweak: how long the pen must rest before your letters are read. Bump it up if you write slowly, or lower it for a snappier feel.
 
 To change it, run this on your computer with the tablet connected:
 
 ```sh
-remagic config wordle
+remagic config inkwordle
 ```
 
 `remagic config` opens a small settings form **in your browser** and also prints a **QR code** — scan it to fill the form from your phone instead. Adjust the value, hit save, and you're done. It writes your choice to a `settings.env` file next to the app on the tablet, which **persists across reboots and reinstalls** (updating the app never overwrites it). Re-run the same command any time to change it again.
 
 | Setting | Default | What it does |
 |---|---|---|
-| `WORDLE_IDLE_MS` | `900` | Milliseconds the pen must pause before your written letters are recognized. Higher = more time to write across boxes before it commits; lower = snappier. |
+| `INKWORDLE_IDLE_MS` | `900` | Milliseconds the pen must pause before your written letters are recognized. Higher = more time to write across boxes before it commits; lower = snappier. |
 
 ---
 
@@ -252,7 +254,7 @@ remagic config wordle
    color e-ink panel ◀──────────── Quill (vendor waveform engine) ◀── colored tiles + tracker + cards
 ```
 
-- **Full-takeover rendering.** While Wordle is open it takes over the display and drives the Gallery 3 color panel directly through the vendor waveform engine (via **Quill**) — instant ink and real color, not the usual UI refresh. Updates are tiny dirty rectangles, so nothing flickers.
+- **Full-takeover rendering.** While InkWordle is open it takes over the display and drives the Gallery 3 color panel directly through the vendor waveform engine (via **Quill**) — instant ink and real color, not the usual UI refresh. Updates are tiny dirty rectangles, so nothing flickers.
 - **Per-box handwriting capture.** Each grid cell keeps its own ink buffer. Strokes are captured thin, then cropped to the letter, scaled to a fixed size, and thickness-normalized — so recognition is size- and pressure-invariant.
 - **On-device recognition.** A small EMNIST convolutional network (ONNX) runs through `tract`'s pure-Rust engine, cross-compiled to native aarch64. Each letter is read in a few milliseconds. The output is softmaxed, digit classes are masked, and upper/lowercase pairs are merged into 26 lowercase letters with a confidence for each.
 - **Scoring & dictionary.** Standard two-pass Wordle scoring (greens first, then presents, with correct duplicate-letter handling). If a guess isn't a valid word, a conservative, confidence-gated auto-correct tries a single well-justified substitution before the guess is rejected.
@@ -279,36 +281,43 @@ The one dependency is Docker (it holds the reMarkable cross-toolchain). The loop
 
 ```sh
 bash build.sh                       # cross-build quill + the game (aarch64), stage the bundle
-remagic install game/dist/wordle    # push to the tablet
+remagic install game/dist/inkwordle    # push to the tablet
 ```
 
 Run the unit tests (scoring, validity, auto-correct, the no-repeat picker) inside the same image:
 
 ```sh
 docker run --rm -v "$PWD:/work" muse-xbuild:latest \
-  bash -lc "cd /work/game && cargo test --bin wordle"
+  bash -lc "cd /work/game && cargo test --bin inkwordle"
 ```
 
 ---
 
 ## Credits & lineage
 
-Wordle stands on the shoulders of the people who opened this device up and made it programmable. Please go star their work.
+**InkWordle is built on, and for, the [remagic](https://github.com/MaximeRivest/remagic) platform** — it wouldn't exist without the people who opened this device up and made it programmable. If you enjoy InkWordle, please go star their work; the credit is theirs.
 
-- **[remagic](https://github.com/MaximeRivest/remagic)** by **[Maxime Rivest](https://github.com/MaximeRivest)** — the one-command platform (developer mode, AppLoad, the CLI and Store) this game installs onto and runs within.
-- **[Riddle](https://github.com/MaximeRivest/riddle)** by **Maxime Rivest** — the original pen-and-e-ink takeover app whose approach this shares; the full-screen "drive the panel yourself" idea comes from there.
-- **[xovi](https://github.com/asivery/xovi)** & **[rm-appload](https://github.com/asivery/rm-appload)** by **asivery** — the function-hooking loader and app host underneath.
-- **[tract](https://github.com/sonos/tract)** by **Sonos** — the pure-Rust neural-network runtime that makes on-device recognition possible on ARM.
+### The platform this runs on
+
+- **[remagic](https://github.com/MaximeRivest/remagic)** by **[Maxime Rivest](https://github.com/MaximeRivest)** — the one-command platform (developer mode, the AppLoad launcher, the `remagic` CLI and Store). InkWordle is installed with `remagic install` and runs entirely within remagic. This project is fundamentally based on it.
+- **[xovi](https://github.com/asivery/xovi)**, **[rm-appload](https://github.com/asivery/rm-appload)** and **epfb-re** by **[asivery](https://github.com/asivery)** — the function-hooking loader, the app host, and the e-ink framebuffer interposition shim. The **Quill** takeover display host that InkWordle draws through is built directly on asivery's epfb-re.
+
+### The engine that reads your handwriting
+
+- **[tract](https://github.com/sonos/tract)** by **Sonos** — the pure-Rust neural-network runtime that runs the recognizer natively on the tablet's ARM chip, with no cloud.
 - **[EMNIST](https://www.nist.gov/itl/products-and-services/emnist-dataset)** (NIST) — the handwritten-character dataset the recognizer was trained on.
-- **[Wordle](https://www.nytimes.com/games/wordle/index.html)** by **Josh Wardle** — the game this lovingly recreates for paper. This is a non-commercial fan project, not affiliated with or endorsed by Wordle / The New York Times.
 
-And, of course, **reMarkable** for the extraordinary paper-like device.
+### The game
+
+- **[Wordle](https://www.nytimes.com/games/wordle/index.html)** by **Josh Wardle** — the original that InkWordle lovingly recreates for paper. This is a non-commercial fan project, not affiliated with or endorsed by Wordle / The New York Times.
+
+And, of course, **reMarkable** for the extraordinary paper-like device (and the developer SDK).
 
 ---
 
 ## License
 
-**MIT** — see [LICENSE](LICENSE). Wordle installs and builds on third-party software under their own licenses and does not redistribute reMarkable's proprietary components.
+**MIT** — see [LICENSE](LICENSE). InkWordle installs and builds on third-party software under their own licenses and does not redistribute reMarkable's proprietary components.
 
 ## Disclaimer
 

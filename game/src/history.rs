@@ -23,7 +23,7 @@ const CAP: usize = 200;
 
 fn path() -> PathBuf {
     let home = std::env::var("HOME").unwrap_or_else(|_| "/home/root".to_string());
-    PathBuf::from(home).join(".wordle-history")
+    PathBuf::from(home).join(".inkwordle-history")
 }
 
 /// Read the recent-answer list (newest last). Missing/garbage lines are ignored.
