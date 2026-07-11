@@ -15,7 +15,13 @@
 ![On-device](https://img.shields.io/badge/recognition-100%25_on--device-2e7d32)
 ![No internet](https://img.shields.io/badge/network-none_needed-0277bd)
 ![Runs on remagic](https://img.shields.io/badge/runs_on-remagic-8A2BE2)
-![License MIT](https://img.shields.io/badge/license-MIT-green)
+![License GPLv3](https://img.shields.io/badge/license-GPLv3-green)
+
+<br>
+
+### ▶️ [**Watch the demo video here →**](https://x.com/Ritikrkcr7/status/2075893228646326486)
+
+<sub>a quick clip of a round being played by hand, on the tablet</sub>
 
 <br>
 
