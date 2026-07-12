@@ -145,6 +145,11 @@ It's also **easy on the tablet**: with no radio spinning, no backlight, and e-in
 - **Learn as you play.** When a round ends, the reveal card shows the answer **and what it means**, so every game leaves you a little wiser.
 - **All offline** — 2,315 hand-checked word definitions ship inside the app; no lookup, no network.
 
+<div align="center">
+<img src="docs/img/hint.jpg" width="58%"><br>
+<sub><b>Tap <b>Hint</b> for a clue</b> — the meaning of the hidden word, with the letters kept secret.</sub>
+</div>
+
 ### 🎨 A UI made for e-ink
 - **Color tiles that pop** on the Gallery 3 color panel, with a clean, roomy grid.
 - **A lock that becomes Enter** — the submit button shows a 🔒 padlock until all five letters are in, then turns into a solid **Enter**.
