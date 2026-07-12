@@ -20,5 +20,7 @@ install -m 644 ../LICENSE dist/inkwordle/LICENSE
 install -m 644 ../quill/NOTICE dist/inkwordle/NOTICE
 # Only the accurate model ships (emnist-62). It loads from disk next to the binary.
 install -m 644 assets/emnist-62.onnx dist/inkwordle/
+# Word definitions (hint clue + game-over reveal). Also embedded in the binary as a fallback.
+install -m 644 assets/definitions.tsv dist/inkwordle/
 
 echo "staged: $(du -sh dist/inkwordle | cut -f1) in dist/inkwordle/"

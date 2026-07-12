@@ -96,6 +96,114 @@ pub fn help_hit(x: i32, y: i32) -> bool {
     x >= HELP_X && x < HELP_X + HELP_W && y >= HELP_Y && y < HELP_Y + HELP_H
 }
 
+// Hint — smaller, below Rules, so a palm/stray tap near the title won't open it.
+pub const HINT_X: i32 = 48;
+pub const HINT_Y: i32 = 132;
+pub const HINT_W: i32 = 150;
+pub const HINT_H: i32 = 64;
+pub fn hint_hit(x: i32, y: i32) -> bool {
+    x >= HINT_X && x < HINT_X + HINT_W && y >= HINT_Y && y < HINT_Y + HINT_H
+}
+
+// Hint popup — short card (not a full-board wall of UI).
+pub const HP_W: i32 = 1000;
+pub const HP_H: i32 = 420;
+pub const HP_X: i32 = (W - HP_W) / 2;
+pub const HP_Y: i32 = 720;
+const HP_BTN_W: i32 = 360;
+const HP_BTN_H: i32 = 110;
+const HP_BTN_X: i32 = (W - HP_BTN_W) / 2;
+const HP_BTN_Y: i32 = HP_Y + HP_H - 130;
+
+/// True if the tap is on the hint popup's "Got it" button.
+pub fn hint_close_hit(x: i32, y: i32) -> bool {
+    x >= HP_BTN_X && x < HP_BTN_X + HP_BTN_W && y >= HP_BTN_Y && y < HP_BTN_Y + HP_BTN_H
+}
+
+/// True if the tap is inside the hint card (not the dimmed outside).
+pub fn hint_card_hit(x: i32, y: i32) -> bool {
+    x >= HP_X && x < HP_X + HP_W && y >= HP_Y && y < HP_Y + HP_H
+}
+
+/// Draw the small Hint control (only while a game is in progress).
+pub fn draw_hint_button(surf: &mut Surface, font: &FontRef, enabled: bool) {
+    // Clear the button slot so we don't ghost old ink under it.
+    surf.fill_rect(
+        HINT_X as usize,
+        HINT_Y as usize,
+        HINT_W as usize,
+        HINT_H as usize,
+        WHITE,
+    );
+    if !enabled {
+        return;
+    }
+    // Solid dark control (same language as primary actions) so it reads clearly
+    // on Gallery 3 — not a pale outline that washes out.
+    surf.fill_rect(
+        HINT_X as usize,
+        HINT_Y as usize,
+        HINT_W as usize,
+        HINT_H as usize,
+        BLACK,
+    );
+    ui::text_center(
+        surf,
+        font,
+        HINT_X + HINT_W / 2,
+        HINT_Y + 14,
+        36.0,
+        "Hint",
+        WHITE,
+    );
+}
+
+/// Compact modal: definition clue for the hidden answer (never shows the letters).
+pub fn draw_hint_popup(surf: &mut Surface, font: &FontRef, definition: &str) {
+    surf.fill_rect(HP_X as usize, HP_Y as usize, HP_W as usize, HP_H as usize, WHITE);
+    ui::border(surf, HP_X, HP_Y, HP_W, HP_H, 4, BLACK);
+    surf.fill_rect(HP_X as usize, HP_Y as usize, HP_W as usize, 14, C_ACTIVE);
+
+    ui::text_center(surf, font, W / 2, HP_Y + 28, 56.0, "Hint", BLACK);
+    ui::text_center(
+        surf,
+        font,
+        W / 2,
+        HP_Y + 90,
+        30.0,
+        "Clue only — not the letters",
+        C_DIM,
+    );
+
+    let body = {
+        let t = definition.trim();
+        if t.is_empty() {
+            "No hint is available for this word."
+        } else {
+            t
+        }
+    };
+    // Compact body: 2–3 short lines, no giant grey panel.
+    let max_w = (HP_W - 80) as f32;
+    let lines = ui::wrap_lines(font, 38.0, body, max_w);
+    let mut y = HP_Y + 140;
+    for line in lines.iter().take(3) {
+        ui::text_center(surf, font, W / 2, y, 38.0, line, BLACK);
+        y += 44;
+    }
+
+    ui::Button::new(HP_BTN_X, HP_BTN_Y, HP_BTN_W, HP_BTN_H, "Got it").draw(surf, font, true);
+    ui::text_center(
+        surf,
+        font,
+        W / 2,
+        HP_Y + HP_H + 22,
+        28.0,
+        "(tap outside to close)",
+        C_DIM,
+    );
+}
+
 /// A compact example colour tile with a letter + explanation, for the help overlay.
 fn legend_row(surf: &mut Surface, font: &FontRef, x: i32, y: i32, m: Mark, letter: char, title: &str, desc: &str) {
     let sz = 92;
@@ -149,21 +257,40 @@ fn title_font() -> FontRef<'static> {
     FontRef::try_from_slice(include_bytes!("../assets/title-font.ttf")).expect("title font")
 }
 
-pub fn draw_header(surf: &mut Surface, font: &FontRef, game: &Game) {
+pub fn draw_header(surf: &mut Surface, font: &FontRef, game: &Game, definition: Option<&str>) {
     surf.fill_rect(0, 0, W as usize, (GRID_Y0 - 8) as usize, WHITE);
-    ui::text_center(surf, &title_font(), W / 2, 20, 118.0, "InkWordle", BLACK);
+    ui::text_center(surf, &title_font(), W / 2, 16, 108.0, "InkWordle", BLACK);
     // rules (top-left) + quit (top-right)
     ui::Button::new(HELP_X, HELP_Y, HELP_W, HELP_H, "Rules").draw(surf, font, false);
     ui::Button::new(QUIT_X, QUIT_Y, QUIT_W, QUIT_H, "Quit").draw(surf, font, false);
+    // Hint sits under Rules (see draw_hint_button) — drawn by the caller when Playing.
     let sub = match game.state {
         State::Playing => format!("Guess {} of {}", (game.filled_rows + 1).min(ROWS), ROWS),
         State::Won => "Solved!".to_string(),
         State::Lost => {
-            let a: String = game.answer.iter().map(|&b| (b as char).to_ascii_uppercase()).collect();
+            let a: String = game
+                .answer
+                .iter()
+                .map(|&b| (b as char).to_ascii_uppercase())
+                .collect();
             format!("The word was {a}")
         }
     };
-    ui::text_center(surf, font, W / 2, 176, 40.0, &sub, C_DIM);
+    ui::text_center(surf, font, W / 2, 148, 40.0, &sub, C_DIM);
+    // After the round ends, show a short meaning under the status (board review).
+    if matches!(game.state, State::Won | State::Lost) {
+        if let Some(def) = definition.map(str::trim).filter(|s| !s.is_empty()) {
+            let max_w = (W - 80) as f32;
+            // One or two compact lines so the grid still fits.
+            let lines = ui::wrap_lines(font, 32.0, def, max_w);
+            let show: Vec<&str> = lines.iter().map(|s| s.as_str()).take(2).collect();
+            let mut y = 188;
+            for line in show {
+                ui::text_center(surf, font, W / 2, y, 32.0, line, C_DIM);
+                y += 36;
+            }
+        }
+    }
     // thin blue accent rule
     surf.fill_rect((GRID_X0) as usize, 236, GRID_W as usize, 4, C_ACTIVE);
 }
@@ -256,24 +383,25 @@ pub fn draw_toast(surf: &mut Surface, font: &FontRef, msg: &str) {
     }
 }
 
-// --- game-over "pop" card ---
-pub const GO_W: i32 = 1160;
-pub const GO_H: i32 = 720;
+// --- game-over "pop" card (taller to fit a one-line / wrapped definition) ---
+pub const GO_W: i32 = 1240;
+pub const GO_H: i32 = 920;
 pub const GO_X: i32 = (W - GO_W) / 2;
-pub const GO_Y: i32 = 560;
+pub const GO_Y: i32 = 420;
 const GO_BTN_W: i32 = 520;
-const GO_BTN_H: i32 = 150;
+const GO_BTN_H: i32 = 140;
 const GO_BTN_X: i32 = (W - GO_BTN_W) / 2;
-const GO_BTN_Y: i32 = GO_Y + 540;
+const GO_BTN_Y: i32 = GO_Y + GO_H - 170;
 
 /// True if a tap hit the card's "New Game" button.
 pub fn gameover_new_hit(x: i32, y: i32) -> bool {
     x >= GO_BTN_X && x < GO_BTN_X + GO_BTN_W && y >= GO_BTN_Y && y < GO_BTN_Y + GO_BTN_H
 }
 
-/// A prominent centred card shown when the game ends (win or loss). Overlays the
-/// board; dismissible by tapping outside the New Game button.
-pub fn draw_gameover(surf: &mut Surface, font: &FontRef, game: &Game) {
+/// A prominent centred card shown when the game ends (win or loss). Shows the
+/// answer word and a short plain-English definition underneath — always, for
+/// both win and loss.
+pub fn draw_gameover(surf: &mut Surface, font: &FontRef, game: &Game, definition: &str) {
     let won = game.state == State::Won;
     surf.fill_rect(GO_X as usize, GO_Y as usize, GO_W as usize, GO_H as usize, WHITE);
     ui::border(surf, GO_X, GO_Y, GO_W, GO_H, 5, BLACK);
@@ -282,22 +410,64 @@ pub fn draw_gameover(surf: &mut Surface, font: &FontRef, game: &Game) {
     surf.fill_rect(GO_X as usize, GO_Y as usize, GO_W as usize, 22, accent);
 
     let title = if won { "You solved it!" } else { "Out of tries" };
-    ui::text_center(surf, font, W / 2, GO_Y + 78, 100.0, title, BLACK);
+    ui::text_center(surf, font, W / 2, GO_Y + 48, 84.0, title, BLACK);
 
-    ui::text_center(surf, font, W / 2, GO_Y + 232, 44.0, "The word was", C_DIM);
-    let word: String = game.answer.iter().map(|&b| (b as char).to_ascii_uppercase()).collect();
-    ui::text_center(surf, font, W / 2, GO_Y + 292, 128.0, &word, BLACK);
+    ui::text_center(surf, font, W / 2, GO_Y + 150, 38.0, "The word was", C_DIM);
+    let word: String = game
+        .answer
+        .iter()
+        .map(|&b| (b as char).to_ascii_uppercase())
+        .collect();
+    ui::text_center(surf, font, W / 2, GO_Y + 196, 112.0, &word, BLACK);
+
+    // Meaning panel: always draw the band so the layout is stable.
+    let panel_x = GO_X + 48;
+    let panel_y = GO_Y + 360;
+    let panel_w = GO_W - 96;
+    let panel_h = 280;
+    surf.fill_rect(
+        panel_x as usize,
+        panel_y as usize,
+        panel_w as usize,
+        panel_h as usize,
+        rgb565(0xF4, 0xF6, 0xF8),
+    );
+    ui::border(surf, panel_x, panel_y, panel_w, panel_h, 2, C_BORDER);
+    ui::text_center(surf, font, W / 2, panel_y + 24, 34.0, "Meaning", C_DIM);
+
+    let def = definition.trim();
+    let body = if def.is_empty() {
+        "No definition available for this word."
+    } else {
+        def
+    };
+    let max_w = (panel_w - 48) as f32;
+    // Up to ~4 lines of meaning, comfortably readable on e-ink.
+    let lines = ui::wrap_lines(font, 40.0, body, max_w);
+    let mut y = panel_y + 78;
+    for line in lines.iter().take(4) {
+        ui::text_center(surf, font, W / 2, y, 40.0, line, BLACK);
+        y += 48;
+    }
 
     let sub = if won {
         let n = game.filled_rows;
-        format!("in {} {}", n, if n == 1 { "guess" } else { "guesses" })
+        format!("Solved in {} {}", n, if n == 1 { "guess" } else { "guesses" })
     } else {
-        "Tap New Game for another word".to_string()
+        "Better luck next round".to_string()
     };
-    ui::text_center(surf, font, W / 2, GO_Y + 468, 46.0, &sub, C_DIM);
+    ui::text_center(surf, font, W / 2, GO_BTN_Y - 64, 38.0, &sub, C_DIM);
 
     ui::Button::new(GO_BTN_X, GO_BTN_Y, GO_BTN_W, GO_BTN_H, "New Game").draw(surf, font, true);
-    ui::text_center(surf, font, W / 2, GO_Y + GO_H + 34, 34.0, "(tap outside to review your board)", C_DIM);
+    ui::text_center(
+        surf,
+        font,
+        W / 2,
+        GO_Y + GO_H + 28,
+        32.0,
+        "(tap outside to review your board)",
+        C_DIM,
+    );
 }
 
 // --- "start a new game?" confirmation card (guards the New button mid-game) ---
@@ -333,10 +503,19 @@ pub fn draw_confirm_new(surf: &mut Surface, font: &FontRef) {
     ui::Button::new(CF_YES_X, CF_BTN_Y, CF_BTN_W, CF_BTN_H, "New Game").draw(surf, font, true);
 }
 
-/// Full repaint (new game / start).
-pub fn draw_all(surf: &mut Surface, font: &FontRef, game: &Game, active_letters: &[Option<char>; COLS], focus: usize, enter_on: bool) {
+/// Full repaint (new game / start). `definition` is shown under the header after
+/// the round ends (win or loss) so the meaning stays visible when reviewing.
+pub fn draw_all(
+    surf: &mut Surface,
+    font: &FontRef,
+    game: &Game,
+    active_letters: &[Option<char>; COLS],
+    focus: usize,
+    enter_on: bool,
+    definition: Option<&str>,
+) {
     surf.fill_rect(0, 0, W as usize, H as usize, WHITE);
-    draw_header(surf, font, game);
+    draw_header(surf, font, game, definition);
     draw_grid(surf, font, game, active_letters, focus);
     draw_toast(surf, font, "");
     draw_tracker(surf, font, game);

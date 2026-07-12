@@ -140,6 +140,11 @@ It's also **easy on the tablet**: with no radio spinning, no backlight, and e-in
 - **Everything the original has.** Six tries, exact **green / amber / gray** scoring (with proper repeated-letter handling), a live **A–Z letter tracker**, and win / lose results — all faithful to the game you know.
 - **All the little precautions, done right.** Words **don't repeat** for a long stretch (remembered even across restarts); **New asks before discarding** a game in progress; the **exit is deliberate** so you never quit by accident; and the validity rules are fair and explained in-app.
 
+### 💡 A hint that teaches, not spoils
+- **Stuck? Tap Hint** for a one-line **meaning of the hidden word** — a genuine clue that *never* shows the letters.
+- **Learn as you play.** When a round ends, the reveal card shows the answer **and what it means**, so every game leaves you a little wiser.
+- **All offline** — 2,315 hand-checked word definitions ship inside the app; no lookup, no network.
+
 ### 🎨 A UI made for e-ink
 - **Color tiles that pop** on the Gallery 3 color panel, with a clean, roomy grid.
 - **A lock that becomes Enter** — the submit button shows a 🔒 padlock until all five letters are in, then turns into a solid **Enter**.
@@ -157,6 +162,7 @@ A slim top bar, the 6×5 grid, the A–Z tracker, and a three-button control bar
 | Control | What it does |
 |---|---|
 | **Rules** (left) | Opens the how-to-play overlay (color legend, tips, which words count). Tap anywhere to close. |
+| **Hint** (left, below Rules) | Shows the hidden word's **meaning** as a clue — never the letters. Available while a game is in progress. |
 | **InkWordle** (center) | The title, with a status line below — *Guess 3 of 6*, *Solved!*, or *The word was …*. |
 | **Quit** (right) | Leaves the game and returns to the launcher. |
 
@@ -251,6 +257,8 @@ remagic config inkwordle
 | Setting | Default | What it does |
 |---|---|---|
 | `INKWORDLE_IDLE_MS` | `900` | Milliseconds the pen must pause before your written letters are recognized. Higher = more time to write across boxes before it commits; lower = snappier. |
+| `INKWORDLE_FLUSH_MS` | `2` | How often pen ink is pushed to the panel while writing. Lower = snappier ink; too low can queue up waveform work. |
+| `INKWORDLE_SOFT_NEW` | `off` | `off` (default) = a clean full-panel refresh on New Game. `on` = skip the flash for a faster new game. |
 
 ---
 

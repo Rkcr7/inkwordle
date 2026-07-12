@@ -6,8 +6,22 @@
       "key": "INKWORDLE_IDLE_MS",
       "label": "Recognize delay (ms)",
       "kind": "select",
-      "options": ["", "500", "700", "900", "1200"],
-      "help": "How long the pen must pause before your written letters are recognized. Higher = more time to write across cells before it commits. Empty = 900 ms."
+      "options": ["", "600", "700", "900", "1200", "1500"],
+      "help": "Pen pause before letters are recognized. Default 900 ms — room to think or lift between boxes. Lower = snappier; higher = more time mid-word."
+    },
+    {
+      "key": "INKWORDLE_FLUSH_MS",
+      "label": "Ink panel flush (ms)",
+      "kind": "select",
+      "options": ["", "1", "2", "3", "4"],
+      "help": "How often dirty pen ink is pushed to the panel while writing. Default 2. Lower = snappier ink; too low can queue waveform work."
+    },
+    {
+      "key": "INKWORDLE_SOFT_NEW",
+      "label": "Soft new-game refresh",
+      "kind": "select",
+      "options": ["", "off", "on"],
+      "help": "off (default) = classic full-panel refresh on New Game (cleaner, no ghosts). on = skip the flash for a faster new game."
     }
   ]
 }

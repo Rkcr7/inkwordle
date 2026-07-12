@@ -43,6 +43,70 @@ pub fn text_center(surf: &mut Surface, font: &FontRef, cx: i32, y: i32, px: f32,
     text(surf, font, cx - (w / 2.0) as i32, y, px, s, color);
 }
 
+/// Word-wrap `s` into lines that fit `max_w` pixels at size `px`.
+pub fn wrap_lines(font: &FontRef, px: f32, s: &str, max_w: f32) -> Vec<String> {
+    let mut lines: Vec<String> = Vec::new();
+    let mut cur = String::new();
+    for word in s.split_whitespace() {
+        let trial = if cur.is_empty() {
+            word.to_string()
+        } else {
+            format!("{cur} {word}")
+        };
+        if text_width(font, px, &trial) <= max_w {
+            cur = trial;
+        } else {
+            if !cur.is_empty() {
+                lines.push(cur);
+            }
+            // Hard-break an overlong single word.
+            if text_width(font, px, word) > max_w {
+                let mut chunk = String::new();
+                for ch in word.chars() {
+                    let t2 = format!("{chunk}{ch}");
+                    if text_width(font, px, &t2) > max_w && !chunk.is_empty() {
+                        lines.push(chunk);
+                        chunk = ch.to_string();
+                    } else {
+                        chunk = t2;
+                    }
+                }
+                cur = chunk;
+            } else {
+                cur = word.to_string();
+            }
+        }
+    }
+    if !cur.is_empty() {
+        lines.push(cur);
+    }
+    if lines.is_empty() {
+        lines.push(String::new());
+    }
+    lines
+}
+
+/// Draw wrapped centered lines starting at `y`; returns y after the last line.
+pub fn text_center_wrapped(
+    surf: &mut Surface,
+    font: &FontRef,
+    cx: i32,
+    y: i32,
+    px: f32,
+    max_w: f32,
+    line_gap: i32,
+    s: &str,
+    color: u16,
+) -> i32 {
+    let lines = wrap_lines(font, px, s, max_w);
+    let mut yy = y;
+    for line in lines {
+        text_center(surf, font, cx, yy, px, &line, color);
+        yy += line_gap;
+    }
+    yy
+}
+
 /// A `t`-px border around a rectangle.
 pub fn border(surf: &mut Surface, x: i32, y: i32, w: i32, h: i32, t: i32, color: u16) {
     let (x, y, w, h, t) = (x.max(0) as usize, y.max(0) as usize, w.max(0) as usize, h.max(0) as usize, t.max(1) as usize);

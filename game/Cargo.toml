@@ -1,6 +1,6 @@
 [package]
 name = "inkwordle"
-version = "0.1.0"
+version = "0.2.0"
 edition = "2021"
 license = "GPL-3.0-or-later"
 description = "InkWordle for the reMarkable Paper Pro — write your guesses by hand, recognized on-device. No LLM."
@@ -14,11 +14,15 @@ tract-onnx = "0.21"
 [features]
 takeover = []
 
+# Dev iteration (host builds).
+[profile.dev]
+opt-level = 1
+
+# Maximum on-device performance (this is the ship profile).
 [profile.release]
 strip = true
-lto = false
-codegen-units = 16
+lto = "fat"
+codegen-units = 1
 opt-level = 3
 panic = "abort"
-# Fast iteration: only recompile changed codegen units (allowed because lto=off).
-incremental = true
+incremental = false

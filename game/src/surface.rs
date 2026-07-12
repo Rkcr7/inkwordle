@@ -154,32 +154,36 @@ impl Surface {
         if x >= x1 || y >= y1 {
             return;
         }
-        // Hoist the format branch + color conversion out of the pixel loops and
-        // write directly into each row (no per-pixel bounds check — clamped).
+        // Clamped region → unsafe row fills (no per-pixel bounds checks).
         let (stride, fmt) = (self.stride, self.fmt);
         let buf = self.buf();
         match fmt {
             PixFmt::Rgb565 => {
                 let (lo, hi) = ((c & 0xff) as u8, (c >> 8) as u8);
+                let row_px = x1 - x;
                 for row in y..y1 {
-                    let base = row * stride;
-                    for col in x..x1 {
-                        let i = base + col * 2;
-                        buf[i] = lo;
-                        buf[i + 1] = hi;
+                    let base = row * stride + x * 2;
+                    unsafe {
+                        let p = buf.as_mut_ptr().add(base);
+                        for i in 0..row_px {
+                            *p.add(i * 2) = lo;
+                            *p.add(i * 2 + 1) = hi;
+                        }
                     }
                 }
             }
             PixFmt::Rgb32 => {
                 let (r, g, bl) = expand565(c);
+                // QImage RGB32 bytes: B, G, R, 0xFF → LE u32
+                let pix = (bl as u32) | ((g as u32) << 8) | ((r as u32) << 16) | (0xFFu32 << 24);
+                let row_px = x1 - x;
                 for row in y..y1 {
-                    let base = row * stride;
-                    for col in x..x1 {
-                        let i = base + col * 4;
-                        buf[i] = bl;
-                        buf[i + 1] = g;
-                        buf[i + 2] = r;
-                        buf[i + 3] = 0xFF;
+                    let base = row * stride + x * 4;
+                    unsafe {
+                        let p = buf.as_mut_ptr().add(base) as *mut u32;
+                        for i in 0..row_px {
+                            *p.add(i) = pix;
+                        }
                     }
                 }
             }
@@ -343,11 +347,82 @@ impl Surface {
         }
     }
 
+    /// Integer isqrt for circle span width (no libm on hot path).
+    #[inline]
+    fn isqrt_u32(n: u32) -> i32 {
+        // Babylonian method — few iterations for r ≤ ~16.
+        if n == 0 {
+            return 0;
+        }
+        let mut x = n;
+        let mut y = (x + 1) / 2;
+        while y < x {
+            x = y;
+            y = (x + n / x) / 2;
+        }
+        x as i32
+    }
+
+    /// Filled disk. Horizontal spans + unsafe row stores (takeover RGB32 is the hot path).
     pub fn stamp(&mut self, cx: i32, cy: i32, r: i32, c: u16) {
-        for dy in -r..=r {
-            for dx in -r..=r {
-                if dx * dx + dy * dy <= r * r {
-                    self.put_px(cx + dx, cy + dy, c);
+        if r <= 0 {
+            self.put_px(cx, cy, c);
+            return;
+        }
+        let r2 = (r * r) as u32;
+        let (w, h, stride, fmt) = (self.w as i32, self.h as i32, self.stride, self.fmt);
+        let buf = self.buf();
+        match fmt {
+            PixFmt::Rgb565 => {
+                let (lo, hi) = ((c & 0xff) as u8, (c >> 8) as u8);
+                for dy in -r..=r {
+                    let y = cy + dy;
+                    if y < 0 || y >= h {
+                        continue;
+                    }
+                    let max_dx = Self::isqrt_u32(r2 - (dy * dy) as u32);
+                    let mut x0 = cx - max_dx;
+                    let mut x1 = cx + max_dx;
+                    if x1 < 0 || x0 >= w {
+                        continue;
+                    }
+                    x0 = x0.max(0);
+                    x1 = x1.min(w - 1);
+                    let n = (x1 - x0 + 1) as usize;
+                    let base = y as usize * stride + x0 as usize * 2;
+                    unsafe {
+                        let p = buf.as_mut_ptr().add(base);
+                        for i in 0..n {
+                            *p.add(i * 2) = lo;
+                            *p.add(i * 2 + 1) = hi;
+                        }
+                    }
+                }
+            }
+            PixFmt::Rgb32 => {
+                let (rr, g, bl) = expand565(c);
+                let pix = (bl as u32) | ((g as u32) << 8) | ((rr as u32) << 16) | (0xFFu32 << 24);
+                for dy in -r..=r {
+                    let y = cy + dy;
+                    if y < 0 || y >= h {
+                        continue;
+                    }
+                    let max_dx = Self::isqrt_u32(r2 - (dy * dy) as u32);
+                    let mut x0 = cx - max_dx;
+                    let mut x1 = cx + max_dx;
+                    if x1 < 0 || x0 >= w {
+                        continue;
+                    }
+                    x0 = x0.max(0);
+                    x1 = x1.min(w - 1);
+                    let n = (x1 - x0 + 1) as usize;
+                    let base = y as usize * stride + x0 as usize * 4;
+                    unsafe {
+                        let p = buf.as_mut_ptr().add(base) as *mut u32;
+                        for i in 0..n {
+                            *p.add(i) = pix;
+                        }
+                    }
                 }
             }
         }
@@ -356,11 +431,16 @@ impl Surface {
     pub fn brush_line(&mut self, x0: i32, y0: i32, x1: i32, y1: i32, r: i32, c: u16) {
         let dx = (x1 - x0).abs();
         let dy = (y1 - y0).abs();
-        let steps = dx.max(dy).max(1);
+        // Sub-sample slightly on long runs: stamp every ~r/2 step still covers the
+        // stroke (disks of radius r overlap heavily). Cuts stamp count ~2–4×.
+        let stride_step = (r / 2).max(1);
+        let steps = (dx.max(dy) / stride_step).max(1);
         for i in 0..=steps {
             let x = x0 + (x1 - x0) * i / steps;
             let y = y0 + (y1 - y0) * i / steps;
             self.stamp(x, y, r, c);
         }
+        // Always stamp the endpoint so short flicks stay solid.
+        self.stamp(x1, y1, r, c);
     }
 }

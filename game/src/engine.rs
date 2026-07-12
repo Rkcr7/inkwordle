@@ -1,23 +1,15 @@
-//! A lightweight, on-device handwritten-character recognition engine.
-//!
-//! Loads the three pretrained ONNX models (EMNIST-62 case-sensitive, EMNIST
-//! balanced-47 case-merged, MNIST-12 digits) with `tract` — pure Rust, no
-//! onnxruntime, no Python, no network — and predicts a single glyph. This is the
-//! detection core the tablet games/apps call instead of an LLM.
+//! On-device handwritten-character recognition (tract + EMNIST-62).
+//! Speed fork: reusable scratch buffers, u8 ink entry, no ensemble.
 
 use std::path::Path;
 use tract_onnx::prelude::*;
 
 use crate::preprocess::*;
 
-/// Which model, and therefore which glyph size / tensor layout / labels.
 #[derive(Clone, Copy, PartialEq)]
 pub enum Kind {
-    /// EMNIST-62: case-sensitive `0-9A-Za-z`. Big (18 MB) but complete.
     Primary,
-    /// MNIST-12: digits only. Tiny (11 KB), int8.
     Digit,
-    /// EMNIST balanced-47: case-merged alphanumeric. Small (258 KB) — the sweet spot.
     Balanced,
 }
 
@@ -47,7 +39,6 @@ impl Kind {
     }
     fn input_shape(self) -> [usize; 4] {
         match self {
-            // NHWC for the LeNet/Keras export; NCHW for the torch/onnx-zoo ones.
             Kind::Balanced => [1, CANVAS, CANVAS, 1],
             _ => [1, 1, CANVAS, CANVAS],
         }
@@ -68,10 +59,6 @@ impl Kind {
     }
 }
 
-/// Model output → probability distribution. Some models end in a softmax (output
-/// already sums to 1); others emit raw logits. Detect: if non-negative and sums to
-/// ~1, use as-is; otherwise softmax. (Running softmax on already-normalized output
-/// flattens confidence toward uniform.)
 fn to_probs(out: &[f32]) -> Vec<f32> {
     let min = out.iter().cloned().fold(f32::MAX, f32::min);
     let sum: f32 = out.iter().sum();
@@ -82,6 +69,28 @@ fn to_probs(out: &[f32]) -> Vec<f32> {
         let exp: Vec<f32> = out.iter().map(|v| (v - max).exp()).collect();
         let s: f32 = exp.iter().sum();
         exp.iter().map(|e| e / s).collect()
+    }
+}
+
+/// Softmax into `out` (len == logits len) without allocating when possible.
+fn to_probs_into(logits: &[f32], out: &mut [f32]) {
+    debug_assert_eq!(logits.len(), out.len());
+    let min = logits.iter().cloned().fold(f32::MAX, f32::min);
+    let sum: f32 = logits.iter().sum();
+    if min >= -1e-4 && (sum - 1.0).abs() < 0.05 {
+        out.copy_from_slice(logits);
+        return;
+    }
+    let max = logits.iter().cloned().fold(f32::MIN, f32::max);
+    let mut s = 0.0f32;
+    for (i, &v) in logits.iter().enumerate() {
+        let e = (v - max).exp();
+        out[i] = e;
+        s += e;
+    }
+    let inv = if s > 0.0 { 1.0 / s } else { 0.0 };
+    for v in out.iter_mut() {
+        *v *= inv;
     }
 }
 
@@ -101,6 +110,23 @@ pub struct Prediction {
     pub latency_ms: f32,
 }
 
+/// Reused across cells / frames to avoid heap churn on the HWR hot path.
+pub struct PredictScratch {
+    tensor: Vec<f32>,
+    logits: Vec<f32>,
+    probs: Vec<f32>,
+}
+
+impl PredictScratch {
+    pub fn new() -> Self {
+        Self {
+            tensor: vec![0.0; CANVAS * CANVAS],
+            logits: Vec::with_capacity(62),
+            probs: vec![0.0; 62],
+        }
+    }
+}
+
 impl Model {
     pub fn load(kind: Kind, path: &Path) -> TractResult<Self> {
         let s = kind.input_shape();
@@ -109,18 +135,103 @@ impl Model {
             .with_input_fact(0, f32::fact([s[0], s[1], s[2], s[3]]).into())?
             .into_optimized()?
             .into_runnable()?;
-        Ok(Model { kind, plan, labels: kind.labels() })
+        Ok(Model {
+            kind,
+            plan,
+            labels: kind.labels(),
+        })
     }
 
-    /// Predict from an ink plane (row-major, 1.0 = stroke).
     pub fn predict(&self, ink: &[f32], w: usize, h: usize) -> Result<Prediction, String> {
         Ok(self.predict_debug(ink, w, h)?.0)
     }
 
-    /// Wordle-specific recognition: return top LETTERS (lowercase, best-first) with
-    /// confidence. Digit classes are masked out and upper/lower case are merged, so
-    /// the classic O/0, I/1/l, 2/Z, 5/S confusions collapse to the letter for free,
-    /// and the result is already lowercase. Requires the 62-class model.
+    /// Wordle path: u8 ink + scratch. Reuses tensor buffer via take/restore
+    /// (avoids a second 784-float alloc per call).
+    pub fn predict_letters_u8(
+        &self,
+        ink: &[u8],
+        w: usize,
+        h: usize,
+        scratch: &mut PredictScratch,
+    ) -> Result<Vec<(char, f32)>, String> {
+        let mask = crop_scale_center_u8(ink, w, h, self.kind.glyph_size())
+            .map_err(|_| "blank".to_string())?;
+        if scratch.tensor.len() < CANVAS * CANVAS {
+            scratch.tensor.resize(CANVAS * CANVAS, 0.0);
+        }
+        tensor_primary_into(&mask, &mut scratch.tensor[..CANVAS * CANVAS]);
+        let s = self.kind.input_shape();
+        // Move tensor into tract; restore an empty capacity-ready buffer after.
+        let mut data = std::mem::take(&mut scratch.tensor);
+        data.truncate(CANVAS * CANVAS);
+        if data.len() < CANVAS * CANVAS {
+            data.resize(CANVAS * CANVAS, 0.0);
+        }
+        let input: Tensor = match tract_ndarray::Array::from_shape_vec(s.to_vec(), data) {
+            Ok(a) => a.into(),
+            Err(e) => {
+                scratch.tensor = vec![0.0; CANVAS * CANVAS];
+                return Err(e.to_string());
+            }
+        };
+        let out = match self.plan.run(tvec!(input.into())) {
+            Ok(o) => o,
+            Err(e) => {
+                scratch.tensor = vec![0.0; CANVAS * CANVAS];
+                return Err(e.to_string());
+            }
+        };
+        // Reclaim a reusable tensor buffer for next cell.
+        scratch.tensor = vec![0.0; CANVAS * CANVAS];
+
+        let view = out[0].to_array_view::<f32>().map_err(|e| e.to_string())?;
+        let slice = view
+            .as_slice()
+            .ok_or_else(|| "model output not contiguous".to_string())?;
+        if slice.len() != 62 {
+            return Err("letter recognition needs the 62-class model".into());
+        }
+        scratch.logits.resize(62, 0.0);
+        // SAFETY: both sides are 62 f32; slice is valid for read.
+        unsafe {
+            core::ptr::copy_nonoverlapping(slice.as_ptr(), scratch.logits.as_mut_ptr(), 62);
+        }
+        if scratch.probs.len() < 62 {
+            scratch.probs.resize(62, 0.0);
+        }
+        to_probs_into(&scratch.logits, &mut scratch.probs[..62]);
+        let probs = &scratch.probs[..62];
+        let mut letter = [0.0f32; 26];
+        for i in 0..26 {
+            // SAFETY: probs len 62; indices 10..36 and 36..62 are in range.
+            unsafe {
+                letter[i] = *probs.get_unchecked(10 + i) + *probs.get_unchecked(36 + i);
+            }
+        }
+        let tot: f32 = letter.iter().sum();
+        let inv = if tot > 0.0 { 1.0 / tot } else { 0.0 };
+        let mut scored: [(char, f32); 26] = [('a', 0.0); 26];
+        for i in 0..26 {
+            scored[i] = ((b'a' + i as u8) as char, letter[i] * inv);
+        }
+        scored.sort_by(|a, b| b.1.partial_cmp(&a.1).unwrap());
+        Ok(scored.to_vec())
+    }
+
+    /// Warm the graph so the first real letter doesn't pay cold costs.
+    pub fn warmup(&self, scratch: &mut PredictScratch) {
+        let ink = vec![0u8; 200 * 200];
+        // A thick blob in the middle so preprocess doesn't blank-out.
+        let mut ink = ink;
+        for y in 60..140 {
+            for x in 60..140 {
+                ink[y * 200 + x] = 255;
+            }
+        }
+        let _ = self.predict_letters_u8(&ink, 200, 200, scratch);
+    }
+
     pub fn predict_letters(
         &self,
         ink: &[f32],
@@ -145,7 +256,6 @@ impl Model {
             return Err("letter recognition needs the 62-class model".into());
         }
         let probs = to_probs(&logits);
-        // labels are "0-9" (0..10), "A-Z" (10..36), "a-z" (36..62). Merge case.
         let mut letter = [0.0f32; 26];
         for i in 0..26 {
             letter[i] = probs[10 + i] + probs[36 + i];
@@ -163,8 +273,6 @@ impl Model {
         Ok(scored)
     }
 
-    /// Like `predict`, but also returns the 28x28 the model actually saw (for a
-    /// preview so you can see what was fed in).
     pub fn predict_debug(
         &self,
         ink: &[f32],
@@ -209,14 +317,11 @@ impl Model {
     }
 }
 
-/// The full engine — as many of the three models as load successfully.
 pub struct Engine {
     pub models: Vec<Model>,
 }
 
 impl Engine {
-    /// Load from a directory holding the three `.onnx` files. A model that fails to
-    /// load (e.g. an unsupported op) is skipped with a warning rather than fatal.
     pub fn load_dir(dir: &Path) -> Self {
         let specs = [
             (Kind::Balanced, "emnist-balanced-47.onnx"),
