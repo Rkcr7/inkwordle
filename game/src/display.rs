@@ -81,11 +81,13 @@ impl Display {
     }
 
     /// Push a region to the panel. `fast` selects the low-latency waveform.
-    pub fn update(&self, x: i32, y: i32, w: i32, h: i32, _fast: bool) {
+    /// Returns `true` if the push was accepted. The windowed (qtfb) backend can
+    /// return `false` when the compositor's socket is momentarily full — the
+    /// caller should then keep the region dirty and retry next frame rather than
+    /// dropping the ink.
+    pub fn update(&self, x: i32, y: i32, w: i32, h: i32, _fast: bool) -> bool {
         match self {
-            Display::Qtfb(c) => {
-                let _ = c.update_partial(x, y, w, h);
-            }
+            Display::Qtfb(c) => c.update_partial(x, y, w, h).is_ok(),
             #[allow(unused_variables)]
             Display::Quill => {
                 #[cfg(feature = "takeover")]
@@ -94,6 +96,7 @@ impl Display {
                     quill_ffi::quill_swap(x, y, w, h, if _fast { 0 } else { 3 }, 0);
                     quill_ffi::quill_process_events();
                 }
+                true
             }
         }
     }

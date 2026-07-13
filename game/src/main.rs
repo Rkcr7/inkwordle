@@ -17,6 +17,7 @@ mod render;
 mod surface;
 mod touch;
 mod ui;
+mod winput;
 
 use ab_glyph::FontRef;
 use engine::{Engine, Kind, PredictScratch};
@@ -230,7 +231,15 @@ fn main() {
     // Idle before recognition: stock-compatible 900 ms default (writers need
     // time to lift between letters / think mid-word). Still overridable via env.
     let idle_ms: u128 = env_u32("INKWORDLE_IDLE_MS", 900) as u128;
-    let flush_ms: u128 = env_u32("INKWORDLE_FLUSH_MS", 2).clamp(1, 16) as u128;
+    // Ink-flush cadence. Takeover drives the vendor engine directly, so 2 ms is
+    // smooth. Windowed pushes traverse xochitl's qtfb compositor, which paints
+    // far slower — flushing that fast floods it and the ink lags, so coalesce to
+    // roughly one e-ink frame. Both are env-overridable for tuning.
+    let flush_ms: u128 = if takeover {
+        env_u32("INKWORDLE_FLUSH_MS", 2).clamp(1, 16)
+    } else {
+        env_u32("INKWORDLE_FLUSH_MS", 16).clamp(4, 100)
+    } as u128;
     let soft_new = env_flag_on("INKWORDLE_SOFT_NEW", false);
 
     let mut scratch = PredictScratch::new();
@@ -295,13 +304,37 @@ fn main() {
     let grace = Instant::now() + Duration::from_millis(1500);
     let mut ink_dirty: Option<(i32, i32, i32, i32)> = None;
     let mut last_flush = Instant::now();
+    let mut wininput = winput::WinInput::new();
 
     loop {
         let mut pen_active = false;
 
+        // Gather input from whichever source is live: raw evdev in takeover, the
+        // qtfb window protocol in windowed mode. Both reduce to a batch of pen
+        // samples plus an optional control tap, so all handling below is
+        // source-agnostic.
+        let (pen_samples, tap): (Vec<pen::PenSample>, Option<(i32, i32)>) = if takeover {
+            let samples = pen.as_mut().map(|p| p.drain()).unwrap_or_default();
+            let tap = touch.as_mut().and_then(|t| match t.drain() {
+                touch::Gesture::Tap(x, y) => Some((x, y)),
+                _ => None,
+            });
+            (samples, tap)
+        } else {
+            // Windowed: drain qtfb events. A closed socket means the window was
+            // destroyed (user closed it from xochitl) — exit cleanly.
+            match disp.pump() {
+                Ok(events) => wininput.translate(&events),
+                Err(_) => {
+                    app.quit = true;
+                    (Vec::new(), None)
+                }
+            }
+        };
+
         // --- pen ---
-        if let Some(ref mut p) = pen {
-            for s in p.drain() {
+        {
+            for s in &pen_samples {
                 if s.tool == pen::Tool::Eraser {
                     if s.touching
                         && !app.locked
@@ -372,37 +405,42 @@ fn main() {
                     None => (x0, y0, x1, y1),
                 });
             }
-            // Coalesce panel pushes (default 2 ms) — snappier than 8 ms, safer than every sample.
+            // Coalesce panel pushes. Only clear the dirty region once the push is
+            // accepted — if the windowed compositor's socket is full, keep it and
+            // retry next frame (never stall, never drop ink).
             if let Some((x0, y0, x1, y1)) = ink_dirty {
                 if last_flush.elapsed().as_millis() >= flush_ms {
                     let pad = PEN_R + 2;
                     let (ux, uy) = ((x0 - pad).max(0), (y0 - pad).max(0));
-                    disp.update(
+                    if disp.update(
                         ux,
                         uy,
                         (x1 + pad - ux).min(R::W - ux),
                         (y1 + pad - uy).min(R::H - uy),
                         true,
-                    );
-                    ink_dirty = None;
-                    last_flush = Instant::now();
+                    ) {
+                        ink_dirty = None;
+                        last_flush = Instant::now();
+                    }
                 }
             }
         }
 
         // Flush remaining ink when pen went quiet (don't leave the last stroke stuck).
         if !pen_active {
-            if let Some((x0, y0, x1, y1)) = ink_dirty.take() {
+            if let Some((x0, y0, x1, y1)) = ink_dirty {
                 let pad = PEN_R + 2;
                 let (ux, uy) = ((x0 - pad).max(0), (y0 - pad).max(0));
-                disp.update(
+                if disp.update(
                     ux,
                     uy,
                     (x1 + pad - ux).min(R::W - ux),
                     (y1 + pad - uy).min(R::H - uy),
                     true,
-                );
-                last_flush = Instant::now();
+                ) {
+                    ink_dirty = None;
+                    last_flush = Instant::now();
+                }
             }
         }
 
@@ -449,21 +487,19 @@ fn main() {
             }
         }
 
-        if let Some(ref mut t) = touch {
-            if let touch::Gesture::Tap(x, y) = t.drain() {
-                on_tap(
-                    &mut app,
-                    &mut surf,
-                    &disp,
-                    &font,
-                    &engine,
-                    &mut scratch,
-                    &words,
-                    soft_new,
-                    x,
-                    y,
-                );
-            }
+        if let Some((x, y)) = tap {
+            on_tap(
+                &mut app,
+                &mut surf,
+                &disp,
+                &font,
+                &engine,
+                &mut scratch,
+                &words,
+                soft_new,
+                x,
+                y,
+            );
         }
         if app.quit {
             break;

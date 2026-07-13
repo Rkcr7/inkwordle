@@ -170,8 +170,26 @@ impl QtfbClient {
         unsafe { std::slice::from_raw_parts_mut(self.shm, self.shm_len) }
     }
 
+    /// Best-effort, non-blocking send for update/control messages: it must never
+    /// stall the main loop. If the server's socket buffer is full (busy painting
+    /// the panel), returns `WouldBlock` so the caller keeps the region dirty and
+    /// retries next frame — rather than blocking, or dropping the ink silently.
     fn send_msg(&self, msg: &[u8; 24]) -> io::Result<()> {
-        send_all(self.fd, msg)
+        let n = unsafe {
+            libc::send(
+                self.fd,
+                msg.as_ptr() as *const libc::c_void,
+                msg.len(),
+                libc::MSG_DONTWAIT,
+            )
+        };
+        if n == msg.len() as isize {
+            Ok(())
+        } else if n < 0 {
+            Err(io::Error::last_os_error())
+        } else {
+            Err(io::Error::new(io::ErrorKind::WriteZero, "short send"))
+        }
     }
 
     pub fn update_all(&self) -> io::Result<()> {
@@ -193,18 +211,20 @@ impl QtfbClient {
     }
 
     /// NOTE: the server sleeps its handler thread for 1s after this — call rarely.
+    /// Reliable send (not best-effort): if this is dropped the server keeps a slow
+    /// default waveform, which is exactly the pen latency we're trying to kill.
     pub fn set_refresh_mode(&self, mode: i32) -> io::Result<()> {
         let mut msg = [0u8; 24];
         msg[0] = MESSAGE_SET_REFRESH_MODE;
         msg[4..8].copy_from_slice(&mode.to_le_bytes());
-        self.send_msg(&msg)
+        send_all(self.fd, &msg)
     }
 
-    /// NOTE: 1s server-side stall, use only on explicit user request.
+    /// NOTE: 1s server-side stall, use only on explicit user request. Reliable send.
     pub fn request_full_refresh(&self) -> io::Result<()> {
         let mut msg = [0u8; 24];
         msg[0] = MESSAGE_REQUEST_FULL_REFRESH;
-        self.send_msg(&msg)
+        send_all(self.fd, &msg)
     }
 
     pub fn terminate(&self) {
