@@ -64,13 +64,24 @@ package() {
 	install -Dm644 NOTICE                 "$D/NOTICE"
 }
 
-# On a purge (`vellum add --purge` / VELLUM_PURGE=1), remove the no-repeat word
-# history InkWordle writes to $HOME (/home/root/.inkwordle-history). It lives
-# outside the app dir, so a normal uninstall would otherwise leave it behind.
+# AppLoad apps only appear after a launcher refresh (mirrors koreader's note).
+postinstall() {
+	echo ""
+	echo "  InkWordle installed — open AppLoad and tap Reload to see it."
+	echo ""
+}
+
+# On a purge (VELLUM_PURGE=1): remove the app dir wholesale (any runtime files apk
+# didn't track) and the no-repeat word history InkWordle writes to $HOME
+# (/home/root/.inkwordle-history, which lives outside the app dir).
 postdeinstall() {
 	if [ "$VELLUM_PURGE" = "1" ]; then
+		rm -rf /home/root/xovi/exthome/appload/inkwordle
 		rm -f /home/root/.inkwordle-history
 	fi
+	echo ""
+	echo "  Refresh AppLoad (Reload) to update the tablet UI."
+	echo ""
 }
 
 sha512sums='1bf016b52966a3040a37158022c0ad2b1cf79c02305574bc2b12baf7111bd76d866d5ef91f334475849273c092dbcbfcf8801bd742e0ca859e99224614806772
