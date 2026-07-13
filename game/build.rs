@@ -6,7 +6,9 @@ fn main() {
         println!("cargo:rustc-link-search=native={quill}/vendor");
         println!("cargo:rustc-link-lib=dylib=quill");
         println!("cargo:rustc-link-lib=dylib=qsgepaper");
-        println!("cargo:rustc-link-arg=-Wl,-rpath,/home/root/quill:/usr/lib/plugins/scenegraph");
+        // $ORIGIN = the app's own directory (libquill.so ships beside the binary),
+        // so the rpath needs no /home path — self-contained and passes packaging checks.
+        println!("cargo:rustc-link-arg=-Wl,-rpath,$ORIGIN:/usr/lib/plugins/scenegraph");
         // Resolve libquill's transitive Qt deps at link time from the SDK
         // sysroot. rpath-link only (NOT link-search: the SDK's libc/libm are
         // linker scripts with absolute paths that break outside --sysroot).

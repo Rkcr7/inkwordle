@@ -8,13 +8,16 @@
 
 **InkWordle** is a full-screen Wordle for the **reMarkable Paper Pro** that turns the word puzzle into something that belongs on paper. You don't tap keys — you write your guess into the grid in your own hand, and a tiny neural net **on the tablet itself** recognizes each letter in milliseconds. No account, no API key, no network. Just ink, paper, and a word to find.
 
+Install it in one command with **remagic**, or straight from the **reManager / Vellum** app library — it runs on the standard **AppLoad** launcher either way.
+
 <br>
 
 ![Device](https://img.shields.io/badge/device-reMarkable_Paper_Pro-black)
 ![Built with Rust](https://img.shields.io/badge/built_with-Rust-000000?logo=rust)
 ![On-device](https://img.shields.io/badge/recognition-100%25_on--device-2e7d32)
 ![No internet](https://img.shields.io/badge/network-none_needed-0277bd)
-![Runs on remagic](https://img.shields.io/badge/runs_on-remagic-8A2BE2)
+![AppLoad](https://img.shields.io/badge/launcher-AppLoad-8A2BE2)
+![Installs with remagic or reManager](https://img.shields.io/badge/installs_with-remagic_%7C_reManager-6a1b9a)
 ![License GPLv3](https://img.shields.io/badge/license-GPLv3-green)
 
 <br>
@@ -199,20 +202,21 @@ A slim top bar, the 6×5 grid, the A–Z tracker, and a three-button control bar
 ## Requirements
 
 - A **reMarkable Paper Pro** (i.MX8MM / aarch64 — Ferrari / Chiappa / Tatsu). *Not* the reMarkable 1 or 2.
-- **remagic** installed on the tablet (developer mode + the AppLoad launcher).
+- The **AppLoad** launcher, installed by **[remagic](https://github.com/MaximeRivest/remagic)** *or* **[reManager](https://github.com/rmitchellscott/reManager) / [Vellum](https://github.com/vellum-dev/vellum)** — whichever you already use (see [Install](#install)).
 - **Nothing else.** No API key, no account, no internet connection — recognition is entirely on-device.
 
 ---
 
 ## Install
 
-### Step 1 — Get remagic on your tablet
+### Step 1 — Get the AppLoad launcher
 
-InkWordle runs on the **remagic** platform (xovi + AppLoad). If you haven't set it up yet, do that first — it's one command:
+InkWordle runs on **AppLoad** (the xovi-based app launcher). Install it with whichever manager you prefer — you only need **one**:
 
-**→ [github.com/MaximeRivest/remagic](https://github.com/MaximeRivest/remagic)**
+- **[remagic](https://github.com/MaximeRivest/remagic)** — one command from your computer; turns on developer mode, installs AppLoad, and gives you the `remagic` CLI. *(Options A & B below use this.)*
+- **[reManager](https://github.com/rmitchellscott/reManager) / [Vellum](https://github.com/vellum-dev/vellum)** — a desktop GUI over an on-tablet package manager; installs AppLoad and lets you add apps from a library. *(Option C below.)*
 
-That turns on developer mode, installs the AppLoad launcher, and gives you the `remagic` CLI on your computer.
+> ⚠️ **Pick one manager and stick with it.** remagic and reManager/Vellum both manage the AppLoad loader (xovi + AppLoad). Installing loader components from **both** on the same tablet will conflict.
 
 ### Step 2 — Install InkWordle
 
@@ -242,6 +246,10 @@ Then **AppLoad → Reload → InkWordle**.
 > ```sh
 > ssh root@10.11.99.1 'cd /home/root/xovi/exthome/appload/inkwordle && chmod 755 inkwordle *.sh libquill.so'
 > ```
+
+#### Option C — reManager / Vellum (install on the tablet, no computer needed)
+
+If you use **[reManager](https://github.com/rmitchellscott/reManager)** — the desktop GUI for the **[Vellum](https://github.com/vellum-dev/vellum)** package manager — InkWordle is available from the app library. Search **InkWordle** and install; Vellum pulls in the AppLoad launcher for you, so there's no separate setup. *(Rolling out to the Vellum registry — if it's not listed yet, use Option A with remagic.)*
 
 That's it — no key, no config. Open **InkWordle** and start writing.
 
