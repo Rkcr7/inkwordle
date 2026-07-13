@@ -23,9 +23,10 @@ source="$pkgname-$_pkgver.zip::https://github.com/Rkcr7/inkwordle/releases/downl
 
 # AppLoad is the only direct dep — its VELBUILD carries the remarkable-os>=3.26,<3.28
 # range, which we inherit transitively (registry convention: apps don't re-declare it).
-# arch=aarch64 already excludes the armv7 rm1/rm2; !rmppure drops the B/W Paper Pro Pure
-# since InkWordle is a colour (Gallery 3) app.
-depends="appload>=0.5.3 !rmppure"
+# Targets the standard Paper Pro (rmpp) only: arch=aarch64 excludes the armv7 rm1/rm2;
+# !rmppure drops the B/W Pure (InkWordle is colour); !rmppm drops the smaller Paper Pro
+# Move (untested — the board layout is fixed to the 1620x2160 Paper Pro panel).
+depends="appload>=0.5.3 !rmppure !rmppm"
 
 # Intentionally installs under /home/root/xovi (an AppLoad app), and the takeover
 # binary rpaths its bundled libquill.so — both normal for reMarkable packages.
